@@ -102,20 +102,18 @@ async function handleAnalyze(request, env, corsHeaders) {
     // 智谱 AI API 端点
     const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
-    // 智谱 GLM-4V 只认 HTTP URL 和 base64，不认 wxfile:// 和 cloud://
-    // 小程序传来的本地路径需要转换为 base64 格式
+    // 小程序已直接把本地图片转成 base64，只需验证格式
     const processedMessages = (body.messages || []).map(msg => ({
       ...msg,
       content: (msg.content || []).map(item => {
         if (item.type !== 'image_url' || !item.image_url?.url) return item;
         const url = item.image_url.url;
-        // 已经是 data:image 开头，直接通过
-        if (url.startsWith('data:')) return item;
-        // 纯 base64 字符串（无 data:image 前缀）
-        if (url.match(/^[A-Za-z0-9+/]+=*$/)) {
-          return { ...item, image_url: { url: `data:image/png;base64,${url}` } };
-        }
-        // HTTP/HTTPS URL，直接通过
+        // data:image;base64,xxx — 直接通过
+        if (url.startsWith('data:image')) return item;
+        // HTTP/HTTPS URL — 直接通过
+        if (url.startsWith('http://') || url.startsWith('https://')) return item;
+        // 其他格式（wxfile://, cloud:// 等），智谱不认，直接报错
+        console.error('[Invalid Image URL] 不支持的图片格式:', url.substring(0, 60));
         return item;
       }),
     }));
