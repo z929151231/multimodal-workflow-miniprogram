@@ -1,6 +1,12 @@
-name = "miniprogram-api-proxy"
+name = "multimodal-h5-page"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
+
+# 托管静态 HTML 文件
+[assets]
+directory = "src"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
 
 # 生产环境部署账户
 [vars]
