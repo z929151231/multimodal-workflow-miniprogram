@@ -102,6 +102,24 @@ async function handleAnalyze(request, env, corsHeaders) {
     // 智谱 AI API 端点
     const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
 
+    // 智谱 GLM-4V 只认 HTTP URL 和 base64，不认 wxfile:// 和 cloud://
+    // 小程序传来的本地路径需要转换为 base64 格式
+    const processedMessages = (body.messages || []).map(msg => ({
+      ...msg,
+      content: (msg.content || []).map(item => {
+        if (item.type !== 'image_url' || !item.image_url?.url) return item;
+        const url = item.image_url.url;
+        // 已经是 data:image 开头，直接通过
+        if (url.startsWith('data:')) return item;
+        // 纯 base64 字符串（无 data:image 前缀）
+        if (url.match(/^[A-Za-z0-9+/]+=*$/)) {
+          return { ...item, image_url: { url: `data:image/png;base64,${url}` } };
+        }
+        // HTTP/HTTPS URL，直接通过
+        return item;
+      }),
+    }));
+
     // 转发请求到智谱 AI
     const proxyResponse = await fetch(ZHIPU_API_URL, {
       method: 'POST',
@@ -111,7 +129,7 @@ async function handleAnalyze(request, env, corsHeaders) {
       },
       body: JSON.stringify({
         model: body.model || 'glm-4v-flash',
-        messages: body.messages || [],
+        messages: processedMessages,
         temperature: body.temperature || 0.3,
         top_p: body.top_p || 0.5,
         stream: false,
