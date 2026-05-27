@@ -142,14 +142,19 @@ async function handleAnalyze(request, env, corsHeaders) {
       });
     }
 
-    // 成功返回结果
+    // 成功返回结果 — 提取提示词，小程序端直接可用
+    const content = responseData.choices?.[0]?.message?.content?.trim() || '';
     console.log('[Success]', {
       model: responseData.model,
-      promptLength: responseData.choices?.[0]?.message?.content?.length || 0,
+      promptLength: content.length,
       usage: responseData.usage,
     });
 
-    return new Response(JSON.stringify(responseData), {
+    return new Response(JSON.stringify({
+      prompt: content,
+      usage: responseData.usage,
+      model: responseData.model,
+    }), {
       status: 200,
       headers: corsHeaders,
     });
